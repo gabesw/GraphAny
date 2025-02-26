@@ -1,5 +1,7 @@
 import os
+import platform
 from datetime import datetime
+from pathlib import Path
 from uuid import uuid4
 
 import numpy as np
@@ -33,7 +35,10 @@ def generate_unique_id(cfg):
     #
     if cfg.get("uid") is not None and cfg.wandb.id is not None:
         assert cfg.get("uid") == cfg.wandb.id, "Confliction: Wandb and uid mismatch!"
-    cur_time = datetime.now().strftime("%b%-d-%-H:%M-")
+    if platform.system() == "Windows":
+        cur_time = datetime.now().strftime("%b %#d %#H-%M")
+    else:
+        cur_time = datetime.now().strftime("%b %-d %-H:%M")
     given_uid = cfg.wandb.id or cfg.get("uid")
     uid = given_uid if given_uid else cur_time + str(uuid4()).split("-")[0]
     return uid
@@ -48,7 +53,7 @@ def init_experiment(cfg):
     set_seed(local_rank + cfg.seed)
     cfg.uid = generate_unique_id(cfg)
     for directory in cfg.dirs.values():
-        os.makedirs(directory, exist_ok=True)
+        os.makedirs(str(Path(directory)), exist_ok=True)
     cfg_out_file = cfg.dirs.output + "hydra_cfg.yaml"
     save_config(cfg, cfg_out_file, as_global=True)
     exp_logger = ExpLogger(cfg)
